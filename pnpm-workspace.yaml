@@ -1,0 +1,18 @@
+allowBuilds:
+  '@swc/core': true
+  cbor-extract: true
+  esbuild: true
+  sharp: true
+  tesseract.js: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@ai-sdk/gateway@3.0.148'
+  - '@ai-sdk/react@3.0.226'
+  - ai@6.0.224
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+  - esbuild
+  - '@swc/core'
+  - cbor-extract
+  - tesseract.js
