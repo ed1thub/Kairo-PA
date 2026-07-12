@@ -71,6 +71,7 @@ export const conversations = pgTable("conversations", {
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   channel: text("channel").notNull(),
   title: text("title"),
+  pinned: boolean("pinned").notNull().default(false),
   workflowRunId: text("workflow_run_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
