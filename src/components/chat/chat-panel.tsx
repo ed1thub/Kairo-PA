@@ -155,7 +155,11 @@ export function ChatPanel() {
       {error && (
         <div className="flex items-center gap-2 border-t bg-destructive/10 px-4 py-3 text-sm text-destructive sm:px-6">
           <TriangleAlert className="size-4 shrink-0" />
-          <span>This conversation hit an error and can&apos;t continue. Use the + button below to start a new one.</span>
+          <span>
+            This conversation hit an error and can&apos;t continue. Starting a new one (+ below) usually fixes it,
+            but if a fresh conversation fails too, the AI provider&apos;s usage limit may be temporarily exhausted;
+            wait a bit and try again.
+          </span>
         </div>
       )}
 

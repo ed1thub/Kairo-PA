@@ -37,6 +37,9 @@ charge, ever, as long as you stay within the limits in the
   always requires an explicit yes/no, on whichever channel you're on.
 - **Full audit trail** (`/activity`): every tool call, permission check,
   and confirmation decision, in one place.
+- **Web dashboard**: a proper sidebar-driven layout (shadcn/ui) across
+  Chat, Documents, Reminders, Automations, Calendar, Memory,
+  Integrations, and Activity, with light/dark/system theme support.
 
 ## What's out of scope (V1)
 
@@ -83,6 +86,7 @@ every non-obvious implementation decision, in the order they were made.
 | Telegram | Chat SDK (`chat` + `@chat-adapter/telegram`) |
 | Web search | Tavily |
 | Calendar | Google Calendar API (OAuth) |
+| UI | shadcn/ui + Tailwind CSS, `next-themes` for dark mode |
 
 ## Prerequisites
 
@@ -232,11 +236,26 @@ Single-user personal use stays comfortably within every limit above.
 - Responses aren't token-streamed word-by-word (a deliberate tradeoff to
   keep the LLM path $0-cost — see the "architecture pivot" note in
   `docs/ASSUMPTIONS.md`). New messages still appear live.
-- One continuous Telegram conversation per user — no "start a new chat"
-  affordance on Telegram the way the web UI has.
 - Groq's free-tier models occasionally fail a tool call outright
   (`AI_APICallError: Failed to call a function`); retrying the same
   request typically succeeds.
+- **Groq free tier has a daily token cap** (e.g. 100,000 tokens/day for
+  `llama-3.3-70b-versatile` — check current limits at
+  [console.groq.com/settings/billing](https://console.groq.com/settings/billing),
+  they vary by model and change over time). Once exhausted, every chat
+  message on both web and Telegram fails after Groq's own retries and
+  the workflow run dies — this looks identical to the assistant "not
+  replying" and resolves on its own once the quota resets (the error
+  message includes the exact wait time, e.g. "try again in 1h31m").
+  Single-user personal use rarely hits this in normal day-to-day use;
+  heavy same-day testing/development traffic can.
+- A conversation whose backing workflow run dies (from the above, or any
+  other fatal error) can't be resumed — the web UI has a "+" button to
+  start a fresh conversation. **Telegram has no equivalent yet**: it
+  always continues your single most recent conversation, so once that
+  run dies every subsequent Telegram message stays slow (each one waits
+  on a status check against the dead run before failing) with no
+  in-product way to reset it. Known gap, not yet fixed.
 
 ## License
 

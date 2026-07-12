@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { CalendarX2, MapPin } from "lucide-react";
+import { CalendarX2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { calendarView } from "@/tools/calendar";
 import { CalendarNotConnectedError } from "@/lib/google-calendar";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { CalendarEvents } from "@/components/calendar/calendar-events";
 
 export default async function CalendarPage() {
   const { user } = await getCurrentUser();
@@ -51,23 +52,7 @@ export default async function CalendarPage() {
     <div className="flex flex-1 flex-col min-h-0">
       <PageHeader title="Calendar" description="Next 7 days from your connected Google Calendar." />
       <div className="flex flex-1 flex-col gap-2 p-4 sm:p-6">
-        {events && events.length === 0 && (
-          <p className="text-sm text-muted-foreground">No events in the next 7 days.</p>
-        )}
-        {events?.map((event) => (
-          <div key={event.id} className="rounded-lg border px-4 py-3">
-            <p className="text-sm font-medium">{event.title}</p>
-            <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-              {event.start ? new Date(event.start).toLocaleString() : ""}
-              {event.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="size-3" />
-                  {event.location}
-                </span>
-              )}
-            </p>
-          </div>
-        ))}
+        <CalendarEvents events={events ?? []} />
       </div>
     </div>
   );
