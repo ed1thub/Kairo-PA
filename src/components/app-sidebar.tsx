@@ -1,45 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
-import {
-  Bot,
-  FileText,
-  Bell,
-  Workflow,
-  Calendar,
-  BrainCircuit,
-  Plug,
-  Activity,
-} from "lucide-react";
+import { Bot } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { ChatList } from "@/components/chat/chat-list";
-
-const NAV_ITEMS = [
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/reminders", label: "Reminders", icon: Bell },
-  { href: "/automations", label: "Automations", icon: Workflow },
-  { href: "/calendar", label: "Calendar", icon: Calendar },
-  { href: "/memory", label: "Memory", icon: BrainCircuit },
-  { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/activity", label: "Activity", icon: Activity },
-] as const;
+import { AccountMenu } from "@/components/settings/account-menu";
 
 export function AppSidebar() {
-  const pathname = usePathname();
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -61,38 +36,11 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <ChatList />
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV_ITEMS.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-              <UserButton
-                appearance={{ elements: { userButtonAvatarBox: "size-6" } }}
-              />
-              <span className="flex-1 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
-                Account
-              </span>
-              <ThemeToggle />
-            </div>
+            <AccountMenu />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
