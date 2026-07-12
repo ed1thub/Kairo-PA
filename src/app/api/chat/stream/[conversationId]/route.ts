@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { conversations } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { getModelName } from "@/lib/llm";
 
 export async function GET(
   request: Request,
@@ -33,6 +34,9 @@ export async function GET(
 
   return createUIMessageStreamResponse({
     stream: readable,
-    headers: { "x-workflow-stream-tail-index": String(tailIndex) },
+    headers: {
+      "x-workflow-stream-tail-index": String(tailIndex),
+      "x-model": getModelName(),
+    },
   });
 }

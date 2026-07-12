@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ShieldAlert, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface PendingAction {
   id: string;
@@ -9,6 +13,13 @@ interface PendingAction {
   riskLevel: string;
   expiresAt: string;
 }
+
+const RISK_VARIANT: Record<string, "secondary" | "destructive"> = {
+  LOW: "secondary",
+  MEDIUM: "secondary",
+  HIGH: "destructive",
+  CRITICAL: "destructive",
+};
 
 export function PendingConfirmations() {
   const [pending, setPending] = useState<PendingAction[]>([]);
@@ -28,39 +39,46 @@ export function PendingConfirmations() {
   }, [refresh]);
 
   async function handleDecision(id: string, approve: boolean) {
-    await fetch(`/api/confirmations/${id}/${approve ? "approve" : "reject"}`, { method: "POST" });
+    const res = await fetch(`/api/confirmations/${id}/${approve ? "approve" : "reject"}`, { method: "POST" });
+    if (res.ok) {
+      toast(approve ? "Action approved" : "Action rejected");
+    } else {
+      toast.error(`Failed to ${approve ? "approve" : "reject"} — please try again`);
+    }
     await refresh();
   }
 
   if (pending.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 px-4 pt-4 max-w-2xl mx-auto w-full">
+    <div className="flex flex-col gap-2 border-t bg-muted/40 px-4 py-3 sm:px-6">
       {pending.map((action) => (
         <div
           key={action.id}
-          className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 px-4 py-3"
+          className="flex items-start gap-3 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2.5 dark:border-amber-800/60 dark:bg-amber-950/40"
         >
-          <p className="text-sm font-medium">Confirm: {action.toolName}</p>
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
-            {JSON.stringify(action.toolArgs)}
-          </p>
-          <p className="text-xs text-neutral-500 mt-1">
-            Risk: {action.riskLevel} · expires {new Date(action.expiresAt).toLocaleTimeString()}
-          </p>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => handleDecision(action.id, true)}
-              className="rounded-lg bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3 py-1 text-sm"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => handleDecision(action.id, false)}
-              className="rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-sm"
-            >
-              Reject
-            </button>
+          <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-500" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium">{action.toolName}</p>
+              <Badge variant={RISK_VARIANT[action.riskLevel] ?? "secondary"} className="text-[10px]">
+                {action.riskLevel}
+              </Badge>
+            </div>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {JSON.stringify(action.toolArgs)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Expires {new Date(action.expiresAt).toLocaleTimeString()}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-1.5">
+            <Button size="sm" onClick={() => handleDecision(action.id, true)}>
+              <Check /> Approve
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleDecision(action.id, false)}>
+              <X /> Reject
+            </Button>
           </div>
         </div>
       ))}

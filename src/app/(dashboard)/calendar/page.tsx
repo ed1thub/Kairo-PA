@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { CalendarX2, MapPin } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { calendarView } from "@/tools/calendar";
 import { CalendarNotConnectedError } from "@/lib/google-calendar";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 
 export default async function CalendarPage() {
   const { user } = await getCurrentUser();
@@ -24,37 +27,48 @@ export default async function CalendarPage() {
 
   if (notConnected) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center p-8 text-center gap-3">
-        <h1 className="text-lg font-medium">Calendar not connected</h1>
-        <p className="text-sm text-neutral-500 max-w-md">
-          Connect Google Calendar on the{" "}
-          <Link href="/integrations" className="underline">
-            Integrations
-          </Link>{" "}
-          page to view and manage your events here.
-        </p>
+      <div className="flex flex-1 flex-col min-h-0">
+        <PageHeader title="Calendar" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+            <CalendarX2 className="size-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">Calendar not connected</p>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              Connect Google Calendar to view and manage your events here.
+            </p>
+          </div>
+          <Button asChild size="sm" className="mt-1">
+            <Link href="/integrations">Go to Integrations</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-8 max-w-2xl mx-auto w-full">
-      <h1 className="text-lg font-medium">Next 7 days</h1>
-      {events && events.length === 0 && (
-        <p className="text-sm text-neutral-500">No events in the next 7 days.</p>
-      )}
-      {events?.map((event) => (
-        <div
-          key={event.id}
-          className="rounded-lg border border-neutral-200 dark:border-neutral-800 px-4 py-3"
-        >
-          <p className="text-sm font-medium">{event.title}</p>
-          <p className="text-xs text-neutral-500">
-            {event.start ? new Date(event.start).toLocaleString() : ""}
-            {event.location ? ` · ${event.location}` : ""}
-          </p>
-        </div>
-      ))}
+    <div className="flex flex-1 flex-col min-h-0">
+      <PageHeader title="Calendar" description="Next 7 days from your connected Google Calendar." />
+      <div className="flex flex-1 flex-col gap-2 p-4 sm:p-6">
+        {events && events.length === 0 && (
+          <p className="text-sm text-muted-foreground">No events in the next 7 days.</p>
+        )}
+        {events?.map((event) => (
+          <div key={event.id} className="rounded-lg border px-4 py-3">
+            <p className="text-sm font-medium">{event.title}</p>
+            <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+              {event.start ? new Date(event.start).toLocaleString() : ""}
+              {event.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="size-3" />
+                  {event.location}
+                </span>
+              )}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

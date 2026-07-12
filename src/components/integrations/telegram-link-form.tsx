@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Send, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function TelegramLinkForm() {
   const [code, setCode] = useState("");
@@ -31,31 +35,38 @@ export function TelegramLinkForm() {
           setStatus("error");
         }
       }}
-      className="flex flex-col gap-3 max-w-sm"
+      className="flex flex-col gap-3"
     >
-      <p className="text-sm text-neutral-500">
-        Message your Kairo Telegram bot with <code>/start</code> to get a linking code, then enter
-        it here.
+      <p className="text-sm text-muted-foreground">
+        Message your Kairo Telegram bot with <code className="rounded bg-muted px-1 py-0.5 text-xs">/start</code> to
+        get a linking code, then enter it here.
       </p>
-      <input
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        placeholder="Linking code"
-        maxLength={6}
-        disabled={status === "linking" || status === "linked"}
-        className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent px-3 py-2 uppercase"
-      />
-      <button
-        type="submit"
-        disabled={!code.trim() || status === "linking" || status === "linked"}
-        className="rounded-lg bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-4 py-2 disabled:opacity-50"
-      >
-        {status === "linked" ? "Linked" : "Link Telegram"}
-      </button>
+      <div className="flex max-w-sm gap-2">
+        <Input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="Linking code"
+          maxLength={6}
+          disabled={status === "linking" || status === "linked"}
+          className="uppercase"
+        />
+        <Button type="submit" disabled={!code.trim() || status === "linking" || status === "linked"}>
+          <Send /> Link
+        </Button>
+      </div>
       {status === "linked" && (
-        <p className="text-sm text-green-600">Telegram is now linked to your account.</p>
+        <Alert className="max-w-sm border-emerald-300/60 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400">
+          <CheckCircle2 className="size-4" />
+          <AlertDescription className="text-emerald-700 dark:text-emerald-400">
+            Telegram is now linked to your account.
+          </AlertDescription>
+        </Alert>
       )}
-      {status === "error" && <p className="text-sm text-red-600">{errorMessage}</p>}
+      {status === "error" && (
+        <Alert variant="destructive" className="max-w-sm">
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
     </form>
   );
 }

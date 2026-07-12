@@ -6,6 +6,9 @@ import { conversations } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { conversationWorkflow } from "@/workflows/conversation";
 import { conversationMessageHook } from "@/workflows/hooks/conversation-message";
+import { getModelName } from "@/lib/llm";
+
+const MODEL_HEADER = { "x-model": getModelName() };
 
 interface ChatRequestBody {
   conversationId: string;
@@ -52,7 +55,7 @@ export async function POST(request: Request) {
 
     return createUIMessageStreamResponse({
       stream: run.readable,
-      headers: { "x-workflow-run-id": run.runId },
+      headers: { "x-workflow-run-id": run.runId, ...MODEL_HEADER },
     });
   }
 
@@ -70,6 +73,6 @@ export async function POST(request: Request) {
 
   return createUIMessageStreamResponse({
     stream: run.getReadable({ startIndex: tailIndexBeforeResume + 1 }),
-    headers: { "x-workflow-run-id": run.runId },
+    headers: { "x-workflow-run-id": run.runId, ...MODEL_HEADER },
   });
 }

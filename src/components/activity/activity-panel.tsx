@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface AuditLogRow {
   id: string;
@@ -12,6 +14,19 @@ interface AuditLogRow {
   channel: string | null;
   createdAt: string;
 }
+
+const STATUS_STYLES: Record<string, string> = {
+  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
+  failed: "bg-destructive/10 text-destructive",
+  cancelled: "bg-muted text-muted-foreground",
+  requires_confirmation: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
+};
+
+const RISK_STYLES: Record<string, string> = {
+  HIGH: "border-destructive/40 text-destructive",
+  CRITICAL: "border-destructive/40 text-destructive",
+};
 
 export function ActivityPanel() {
   const [rows, setRows] = useState<AuditLogRow[]>([]);
@@ -29,22 +44,28 @@ export function ActivityPanel() {
   }, [refresh]);
 
   return (
-    <div className="flex flex-1 flex-col gap-2 p-8 max-w-3xl mx-auto w-full">
-      {rows.length === 0 && <p className="text-sm text-neutral-500">No activity yet.</p>}
+    <div className="flex flex-1 flex-col gap-2 p-4 sm:p-6">
+      {rows.length === 0 && <p className="text-sm text-muted-foreground">No activity yet.</p>}
       {rows.map((row) => (
         <div
           key={row.id}
-          className="flex items-center justify-between rounded-lg border border-neutral-200 dark:border-neutral-800 px-4 py-2 text-sm"
+          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border px-4 py-2.5 text-sm"
         >
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{row.action}</span>
-            {row.toolName && <span className="text-neutral-500"> · {row.toolName}</span>}
-            {row.riskLevel && <span className="text-neutral-500"> · {row.riskLevel}</span>}
+            {row.toolName && <span className="font-mono text-xs text-muted-foreground">{row.toolName}</span>}
+            {row.riskLevel && (
+              <Badge variant="outline" className={cn("text-[10px]", RISK_STYLES[row.riskLevel])}>
+                {row.riskLevel}
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
-            <span>{row.status}</span>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="secondary" className={cn("text-[10px] capitalize", STATUS_STYLES[row.status])}>
+              {row.status.replace(/_/g, " ")}
+            </Badge>
             {row.confirmationStatus && row.confirmationStatus !== "not_required" && (
-              <span>({row.confirmationStatus})</span>
+              <span className="capitalize">({row.confirmationStatus})</span>
             )}
             <span>{new Date(row.createdAt).toLocaleString()}</span>
           </div>

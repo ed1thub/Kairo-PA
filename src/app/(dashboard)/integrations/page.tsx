@@ -2,6 +2,8 @@ import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { integrations } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { PageHeader } from "@/components/page-header";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { TelegramLinkForm } from "@/components/integrations/telegram-link-form";
 import { GoogleCalendarCard } from "@/components/integrations/google-calendar-card";
 import { ToolPermissionsPanel } from "@/components/integrations/tool-permissions-panel";
@@ -16,19 +18,39 @@ export default async function IntegrationsPage() {
     .limit(1);
 
   return (
-    <div className="flex flex-1 flex-col gap-8 p-8 max-w-2xl mx-auto w-full">
-      <section>
-        <h1 className="text-lg font-medium mb-4">Telegram</h1>
-        <TelegramLinkForm />
-      </section>
-      <section>
-        <h2 className="text-lg font-medium mb-2">Google Calendar</h2>
-        <GoogleCalendarCard connected={calendarIntegration?.status === "connected"} />
-      </section>
-      <section>
-        <h2 className="text-lg font-medium mb-2">Tool Permissions</h2>
-        <ToolPermissionsPanel />
-      </section>
+    <div className="flex flex-1 flex-col min-h-0">
+      <PageHeader title="Integrations" description="Connect channels and manage what Kairo is allowed to do." />
+      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Telegram</CardTitle>
+            <CardDescription>Link your Telegram account to chat with Kairo there too.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TelegramLinkForm />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Google Calendar</CardTitle>
+            <CardDescription>Let Kairo view, create, and manage events on your behalf.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GoogleCalendarCard connected={calendarIntegration?.status === "connected"} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Tool permissions</CardTitle>
+            <CardDescription>Enable or disable individual tools and confirmation requirements.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ToolPermissionsPanel />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

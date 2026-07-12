@@ -2,8 +2,12 @@ import { groq } from "@ai-sdk/groq";
 
 export const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 
+export function getModelName() {
+  return process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
+}
+
 export function getChatModel() {
-  return groq(process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL);
+  return groq(getModelName());
 }
 
 const BASE_SYSTEM_PROMPT = `You are Kairo, a personal AI assistant. You are helping exactly one user manage their own information and tasks — never assume you are talking to anyone else.

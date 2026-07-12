@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Download, Pencil, Trash2, Lock } from "lucide-react";
 import { MEMORY_CATEGORIES } from "@/lib/memory-constants";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface MemoryRow {
   id: string;
@@ -33,6 +38,7 @@ export function MemoryPanel() {
   async function handleDelete(id: string) {
     const res = await fetch(`/api/memory/${id}`, { method: "DELETE" });
     if (!res.ok) return;
+    toast("Memory deleted");
     setRows((current) => current.filter((r) => r.id !== id));
   }
 
@@ -50,6 +56,7 @@ export function MemoryPanel() {
     setEditingId(null);
     if (!res.ok) return;
     const { memory } = await res.json();
+    toast.success("Memory updated");
     setRows((current) => current.map((r) => (r.id === id ? memory : r)));
   }
 
@@ -66,69 +73,76 @@ export function MemoryPanel() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-8 max-w-2xl mx-auto w-full">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-500">
-          What Kairo remembers about you across conversations. Kairo proposes new memories as it
-          learns things worth keeping — sensitive ones always ask first.
+    <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          Kairo proposes new memories as it learns things worth keeping. Sensitive ones always ask first.
         </p>
-        <button onClick={handleExport} className="text-sm underline whitespace-nowrap ml-4">
-          Export JSON
-        </button>
+        <Button variant="outline" size="sm" onClick={handleExport} className="shrink-0">
+          <Download /> Export
+        </Button>
       </div>
 
       <div className="flex flex-col gap-2">
-        {rows.length === 0 && (
-          <p className="text-sm text-neutral-500">Nothing remembered yet.</p>
-        )}
+        {rows.length === 0 && <p className="text-sm text-muted-foreground">Nothing remembered yet.</p>}
         {rows.map((m) => (
-          <div
-            key={m.id}
-            className="flex flex-col gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 px-4 py-3"
-          >
+          <div key={m.id} className="flex flex-col gap-2 rounded-lg border px-4 py-3">
             {editingId === m.id ? (
               <div className="flex flex-col gap-2">
-                <textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm"
-                  rows={2}
-                />
-                <div className="flex gap-3 text-sm">
-                  <button onClick={() => saveEdit(m.id)} className="underline">
+                <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => saveEdit(m.id)}>
                     Save
-                  </button>
-                  <button onClick={() => setEditingId(null)} className="underline text-neutral-500">
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
               <>
                 <div className="flex items-start justify-between gap-4">
                   <p className="text-sm">{m.content}</p>
-                  <div className="flex gap-2 text-sm whitespace-nowrap">
-                    <button onClick={() => startEdit(m)} className="underline">
-                      Edit
-                    </button>
-                    <button onClick={() => handleDelete(m.id)} className="underline text-red-600">
-                      Delete
-                    </button>
+                  <div className="flex shrink-0 gap-1">
+                    <Button variant="ghost" size="icon-sm" onClick={() => startEdit(m)}>
+                      <Pencil />
+                      <span className="sr-only">Edit</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(m.id)}
+                    >
+                      <Trash2 />
+                      <span className="sr-only">Delete</span>
+                    </Button>
                   </div>
                 </div>
-                <p className="text-xs text-neutral-500">
-                  {m.category ?? "uncategorized"} · {m.sensitivity}
-                  {!m.approved ? " · pending approval" : ""} · {new Date(m.createdAt).toLocaleDateString()}
-                </p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {m.category && (
+                    <Badge variant="secondary" className="capitalize">
+                      {m.category}
+                    </Badge>
+                  )}
+                  {m.sensitivity === "sensitive" && (
+                    <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                      <Lock className="size-3" /> sensitive
+                    </Badge>
+                  )}
+                  {!m.approved && <Badge variant="outline">pending approval</Badge>}
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(m.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
               </>
             )}
           </div>
         ))}
       </div>
 
-      <p className="text-xs text-neutral-400">
-        Categories: {MEMORY_CATEGORIES.join(", ")}. Memories marked &ldquo;sensitive&rdquo; always required
-        your explicit confirmation before being saved.
+      <p className="text-xs text-muted-foreground">
+        Categories: {MEMORY_CATEGORIES.join(", ")}.
       </p>
     </div>
   );

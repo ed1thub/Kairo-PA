@@ -84,7 +84,7 @@ export function registerHandlers(bot: Chat<any>) {
       .where(eq(workspaces.userId, link.userId))
       .limit(1);
     if (!workspace) {
-      await thread.post("Your account isn't fully set up yet — please try again in a moment.");
+      await thread.post("Your account isn't fully set up yet. Please try again in a moment.");
       return;
     }
 
@@ -117,7 +117,7 @@ export function registerHandlers(bot: Chat<any>) {
         await start(ingestDocumentWorkflow, [document.id]);
       }
       await thread.post(
-        `Got it — indexing ${supportedAttachments.length === 1 ? "that file" : `${supportedAttachments.length} files`}. Ask me about it once it's ready (check Documents in the web dashboard for status).`,
+        `Got it, indexing ${supportedAttachments.length === 1 ? "that file" : `${supportedAttachments.length} files`}. Ask me about it once it's ready (check Documents in the web dashboard for status).`,
       );
       if (!message.text.trim()) return;
     }
@@ -155,7 +155,7 @@ export function registerHandlers(bot: Chat<any>) {
     }
 
     if (!existingConversation.workflowRunId) {
-      await thread.post("Something went wrong resuming your conversation — please try again.");
+      await thread.post("Something went wrong resuming your conversation. Please try again.");
       return;
     }
 
