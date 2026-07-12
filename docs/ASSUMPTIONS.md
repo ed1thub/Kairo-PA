@@ -4,6 +4,38 @@ Per the project's development rule "any assumption made during implementation
 must be documented," this file tracks non-obvious decisions and the reasoning
 behind them, updated as each phase is built.
 
+## Post-Phase-7 — First deploy
+
+**Vercel Hobby (free) plan only allows daily cron schedules** — the
+original `*/5 * * * *` and `*/15 * * * *` expressions in `vercel.ts`
+failed the entire deploy outright (`"Hobby accounts are limited to daily
+cron jobs"`), not just a warning. Given the project's $0 constraint,
+fixed by moving all three crons to once-daily, staggered 15 minutes apart
+(`check-reminders` 03:00 UTC, `expire-confirmations` 03:15, `run-
+automations` 03:30) rather than suggesting a Pro-plan upgrade. Real
+tradeoff, not just a cosmetic change: reminder delivery and confirmation
+suspension are unaffected (both are driven by each workflow's own
+`sleep()`/hook, independent of cron — these three routes are safety
+nets/batch sweeps only), but a pending confirmation now stays visibly
+"pending" for up to 24h past its 15-minute expiry before the sweep
+catches it, and any automation scheduled finer than daily (e.g. an
+hourly digest) won't fire at that granularity — it'll only be checked
+once a day. Worth revisiting if the user ever upgrades to Pro.
+
+**First production deploy**: `https://kairo-pa.vercel.app` (Vercel
+auto-aliased this from the project name). `APP_BASE_URL` and
+`GOOGLE_OAUTH_REDIRECT_URI` were added to Vercel's env vars *after* the
+first deploy, which does not retroactively apply to a running
+deployment — a second `vercel --prod` was required before those values
+took effect. `/api/health` confirmed `{"db":"ok","redis":"ok"}` on the
+live URL. Telegram webhook registered against the production URL via
+`setWebhook` + confirmed via `getWebhookInfo` (zero pending updates,
+correct URL). Google Calendar OAuth still needs the production redirect
+URI (`https://kairo-pa.vercel.app/api/integrations/google-calendar/
+callback`) added as an authorized redirect URI in the Google Cloud
+Console OAuth client — that's a manual step in Google's console, not
+something settable via API/CLI from here.
+
 ## Post-Phase-7 — Exhaustive scenario testing + security audit
 
 No test framework is configured in this project (no vitest/jest, no
