@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import {
   Bot,
-  MessageSquare,
   FileText,
   Bell,
   Workflow,
@@ -26,9 +25,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ChatList } from "@/components/chat/chat-list";
 
 const NAV_ITEMS = [
-  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/documents", label: "Documents", icon: FileText },
   { href: "/reminders", label: "Reminders", icon: Bell },
   { href: "/automations", label: "Automations", icon: Workflow },
@@ -61,6 +60,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <ChatList />
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
