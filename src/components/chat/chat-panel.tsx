@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { WorkflowChatTransport } from "@workflow/ai";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -10,44 +11,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { PendingConfirmations } from "@/components/chat/pending-confirmations";
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "kairo-active-conversation-id";
-const STARTED_KEY = "kairo-conversation-started";
+const STARTED_KEY_PREFIX = "kairo-conversation-started:";
 
-function getOrCreateConversationId(): string {
-  if (typeof window === "undefined") return "";
-  const existing = localStorage.getItem(STORAGE_KEY);
-  if (existing) return existing;
-  const id = crypto.randomUUID();
-  localStorage.setItem(STORAGE_KEY, id);
-  return id;
-}
-
-export function ChatPanel() {
-  const [conversationId, setConversationId] = useState<string | null>(null);
+export function ChatPanel({ conversationId }: { conversationId: string }) {
+  const router = useRouter();
   // A conversation only has something to resume once its first message has
   // actually reached the server (row + workflow run created). Resuming a
   // brand-new id 404s on GET /api/chat/stream/[id] and permanently wedges
   // useChat's status at "error", disabling the composer. This is decided
-  // once at mount and never flipped again afterward: useChat's resume
-  // effect re-fires resumeStream() on every false->true transition of
-  // `resume`, so toggling it true right after the first sendMessage() (as
-  // opposed to only reading it once at mount) races the same GET against
-  // the POST that's still creating the conversation row server-side.
+  // once per conversationId and never flipped again afterward: useChat's
+  // resume effect re-fires resumeStream() on every false->true transition
+  // of `resume`, so toggling it true right after the first sendMessage()
+  // (as opposed to only reading it once when the conversation loads) races
+  // the same GET against the POST that's still creating the conversation
+  // row server-side.
   const [shouldResume, setShouldResume] = useState(false);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // localStorage isn't available during SSR, so the conversation id can
-    // only be resolved after mount, synced in from this external source.
-    const id = getOrCreateConversationId();
+    // Re-derive on every conversationId change, not just on mount: this
+    // component instance is reused across chat switches (Next.js keeps the
+    // same page component mounted when only the dynamic segment changes),
+    // so a [] dependency array here would leave shouldResume/input stuck
+    // from the previously-open chat.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setConversationId(id);
-    setShouldResume(localStorage.getItem(STARTED_KEY) === id);
-  }, []);
+    setInput("");
+    setShouldResume(localStorage.getItem(STARTED_KEY_PREFIX + conversationId) === "1");
+  }, [conversationId]);
 
   const transport = useMemo(() => {
-    if (!conversationId) return undefined;
     return new WorkflowChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ id, messages, api }) => {
@@ -70,10 +63,13 @@ export function ChatPanel() {
         return res;
       },
     });
-  }, [conversationId]);
+    // Stable across conversationId changes: the id is read from useChat's
+    // own params at request time (see prepareSendMessagesRequest above),
+    // never closed over here.
+  }, []);
 
   const { messages, sendMessage, status, error } = useChat({
-    id: conversationId ?? undefined,
+    id: conversationId,
     resume: shouldResume,
     transport,
   });
@@ -86,27 +82,16 @@ export function ChatPanel() {
     if (!input.trim() || status !== "ready") return;
     sendMessage({ text: input });
     setInput("");
-    // Just persists for the *next* page load — does not touch shouldResume,
-    // which must stay fixed for this component instance's lifetime (see
-    // note above).
-    if (conversationId) {
-      localStorage.setItem(STARTED_KEY, conversationId);
-    }
+    localStorage.setItem(STARTED_KEY_PREFIX + conversationId, "1");
   }
 
   // The underlying workflow run backing a conversation can fail outright
   // (Groq's free-tier models occasionally reject a tool call; see
   // docs/ASSUMPTIONS.md) and there is no way to resume a dead run. Once
   // that happens the composer would otherwise stay disabled forever with
-  // no way out short of clearing localStorage by hand.
+  // no way out.
   function startNewConversation() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STARTED_KEY);
-    window.location.reload();
-  }
-
-  if (!conversationId || !transport) {
-    return null;
+    router.push(`/chat/${crypto.randomUUID()}`);
   }
 
   return (
