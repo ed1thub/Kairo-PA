@@ -1,31 +1,25 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { WorkflowChatTransport } from "@workflow/ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Send, Sparkles, TriangleAlert, SquarePlus } from "lucide-react";
+import type { UIMessage } from "ai";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PendingConfirmations } from "@/components/chat/pending-confirmations";
 import { cn } from "@/lib/utils";
 
-const STARTED_KEY_PREFIX = "kairo-conversation-started:";
-
-export function ChatPanel({ conversationId }: { conversationId: string }) {
+export function ChatPanel({
+  conversationId,
+  initialMessages,
+}: {
+  conversationId: string;
+  initialMessages: UIMessage[];
+}) {
   const router = useRouter();
-  // A conversation only has something to resume once its first message has
-  // actually reached the server (row + workflow run created). Resuming a
-  // brand-new id 404s on GET /api/chat/stream/[id] and permanently wedges
-  // useChat's status at "error", disabling the composer. This is decided
-  // once per conversationId and never flipped again afterward: useChat's
-  // resume effect re-fires resumeStream() on every false->true transition
-  // of `resume`, so toggling it true right after the first sendMessage()
-  // (as opposed to only reading it once when the conversation loads) races
-  // the same GET against the POST that's still creating the conversation
-  // row server-side.
-  const [shouldResume, setShouldResume] = useState(false);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -33,11 +27,10 @@ export function ChatPanel({ conversationId }: { conversationId: string }) {
     // Re-derive on every conversationId change, not just on mount: this
     // component instance is reused across chat switches (Next.js keeps the
     // same page component mounted when only the dynamic segment changes),
-    // so a [] dependency array here would leave shouldResume/input stuck
-    // from the previously-open chat.
+    // so a [] dependency array here would leave input stuck from the
+    // previously-open chat.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setInput("");
-    setShouldResume(localStorage.getItem(STARTED_KEY_PREFIX + conversationId) === "1");
   }, [conversationId]);
 
   const transport = useMemo(() => {
@@ -70,7 +63,7 @@ export function ChatPanel({ conversationId }: { conversationId: string }) {
 
   const { messages, sendMessage, status, error } = useChat({
     id: conversationId,
-    resume: shouldResume,
+    messages: initialMessages,
     transport,
   });
 
@@ -82,7 +75,6 @@ export function ChatPanel({ conversationId }: { conversationId: string }) {
     if (!input.trim() || status !== "ready") return;
     sendMessage({ text: input });
     setInput("");
-    localStorage.setItem(STARTED_KEY_PREFIX + conversationId, "1");
   }
 
   // The underlying workflow run backing a conversation can fail outright

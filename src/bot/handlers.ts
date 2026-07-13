@@ -1,12 +1,12 @@
 import type { Chat } from "chat";
+import type { ModelMessage } from "ai";
 import { customAlphabet } from "nanoid";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, asc, desc } from "drizzle-orm";
 import { put } from "@vercel/blob";
 import { start } from "workflow/api";
 import { getDb } from "@/db/client";
-import { telegramLinks, conversations, workspaces, documents, pendingActions } from "@/db/schema";
+import { telegramLinks, conversations, workspaces, documents, pendingActions, messages as messagesTable } from "@/db/schema";
 import { conversationWorkflow } from "@/workflows/conversation";
-import { conversationMessageHook } from "@/workflows/hooks/conversation-message";
 import { confirmationHook } from "@/workflows/hooks/confirmation";
 import { resolvePendingAction } from "@/workflows/steps/confirmation";
 import { ingestDocumentWorkflow } from "@/workflows/ingest-document";
@@ -129,6 +129,9 @@ export function registerHandlers(bot: Chat<any>) {
       .orderBy(desc(conversations.createdAt))
       .limit(1);
 
+    let conversationId: string;
+    let priorMessages: ModelMessage[] = [];
+
     if (!existingConversation) {
       const [conversation] = await db
         .insert(conversations)
@@ -139,31 +142,28 @@ export function registerHandlers(bot: Chat<any>) {
           title: message.text.slice(0, 80),
         })
         .returning();
-
-      const run = await start(conversationWorkflow, [
-        conversation.id,
-        link.userId,
-        workspace.id,
-        { content: message.text, channel: "telegram" as const, telegramChannelId: channelId },
-      ]);
-
-      await db
-        .update(conversations)
-        .set({ workflowRunId: run.runId })
-        .where(eq(conversations.id, conversation.id));
-      return;
+      conversationId = conversation.id;
+    } else {
+      conversationId = existingConversation.id;
+      const rows = await db
+        .select()
+        .from(messagesTable)
+        .where(eq(messagesTable.conversationId, conversationId))
+        .orderBy(asc(messagesTable.createdAt));
+      priorMessages = rows.map((row) => ({ role: row.role, content: row.content }) as ModelMessage);
     }
 
-    if (!existingConversation.workflowRunId) {
-      await thread.post("Something went wrong resuming your conversation. Please try again.");
-      return;
-    }
+    // Each message gets its own workflow run scoped to a single turn, with
+    // history reloaded from the messages table — see conversation.ts for why.
+    const run = await start(conversationWorkflow, [
+      conversationId,
+      link.userId,
+      workspace.id,
+      priorMessages,
+      { content: message.text, channel: "telegram" as const, telegramChannelId: channelId },
+    ]);
 
-    await conversationMessageHook.resume(`conversation:${existingConversation.id}`, {
-      content: message.text,
-      channel: "telegram",
-      telegramChannelId: channelId,
-    });
+    await db.update(conversations).set({ workflowRunId: run.runId }).where(eq(conversations.id, conversationId));
   });
 
   bot.onAction(["confirm_approve", "confirm_reject"], async (event) => {

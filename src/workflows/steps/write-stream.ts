@@ -25,3 +25,19 @@ export async function writeAssistantText(text: string, sendStart: boolean) {
     writer.releaseLock();
   }
 }
+
+/**
+ * Marks this turn's response stream as complete and closes it. Each web
+ * chat request gets its own bounded workflow run (see conversation.ts), so
+ * without this the HTTP response for that request never ends: useChat's
+ * transport only reconnects when a request's stream ends without a "finish"
+ * chunk, so a stream that neither writes "finish" nor closes leaves the
+ * composer disabled forever (see docs/ASSUMPTIONS.md).
+ */
+export async function finishStream() {
+  "use step";
+  const writable = getWritable<UIMessageChunk>();
+  const writer = writable.getWriter();
+  await writer.write({ type: "finish" });
+  await writer.close();
+}

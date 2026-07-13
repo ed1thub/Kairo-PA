@@ -1,9 +1,8 @@
 import type { ModelMessage } from "ai";
-import { conversationMessageHook } from "./hooks/conversation-message";
 import { persistUserMessage, persistAgentTurn } from "./steps/persist-message";
 import { deliverAssistantReplyToTelegram } from "./steps/deliver-telegram";
 import { callModel } from "./steps/model-call";
-import { writeAssistantText } from "./steps/write-stream";
+import { writeAssistantText, finishStream } from "./steps/write-stream";
 import { executeTool } from "@/tools/registry";
 
 export interface ConversationTurn {
@@ -37,7 +36,6 @@ async function runAgentTurn(
   telegramChannelId: string | undefined,
   requestId: string,
   workingMessages: ModelMessage[],
-  sendStart: boolean,
 ): Promise<ModelMessage[]> {
   const newMessages: ModelMessage[] = [];
 
@@ -51,7 +49,7 @@ async function runAgentTurn(
       .map((m) => extractText(m.content))
       .join("");
     if (text) {
-      await writeAssistantText(text, sendStart && round === 0);
+      await writeAssistantText(text, round === 0);
     }
 
     if (toolCalls.length === 0) break;
@@ -89,47 +87,42 @@ async function runAgentTurn(
 }
 
 /**
- * One workflow run per conversation. Both the web UI and Telegram inject new
- * turns into the SAME run via `conversationMessageHook`, keyed by the
- * deterministic token `conversation:{conversationId}` — this workflow never
- * needs to know which channel a message came from to keep replying.
+ * One workflow run per turn. Both the web UI and Telegram call `start()`
+ * with this turn's message plus the conversation's prior history (loaded
+ * from the `messages` table by the caller) — the workflow itself owns no
+ * state across turns. This keeps each web request's response stream bounded
+ * (it closes when this turn's reply is done, see finishStream()) rather
+ * than tied to a run that stays suspended indefinitely awaiting the next
+ * message, which left the chat composer permanently disabled after the
+ * first message.
  */
 export async function conversationWorkflow(
   conversationId: string,
   userId: string,
   workspaceId: string,
-  initialTurn: ConversationTurn,
+  priorMessages: ModelMessage[],
+  turn: ConversationTurn,
 ) {
   "use workflow";
 
-  using hook = conversationMessageHook.create({ token: `conversation:${conversationId}` });
+  await persistUserMessage(conversationId, turn.content);
+  const modelMessages: ModelMessage[] = [...priorMessages, { role: "user", content: turn.content }];
 
-  const modelMessages: ModelMessage[] = [];
-  let pending: ConversationTurn | null = initialTurn;
-  let turn = 0;
+  const requestId = crypto.randomUUID();
+  const newMessages = await runAgentTurn(
+    userId,
+    workspaceId,
+    conversationId,
+    turn.channel,
+    turn.telegramChannelId,
+    requestId,
+    modelMessages,
+  );
+  await persistAgentTurn(conversationId, newMessages);
 
-  while (pending) {
-    turn++;
-    await persistUserMessage(conversationId, pending.content);
-    modelMessages.push({ role: "user", content: pending.content });
-
-    const requestId = crypto.randomUUID();
-    const newMessages = await runAgentTurn(
-      userId,
-      workspaceId,
-      conversationId,
-      pending.channel,
-      pending.telegramChannelId,
-      requestId,
-      modelMessages,
-      turn === 1,
-    );
-    await persistAgentTurn(conversationId, newMessages);
-
-    if (pending.channel === "telegram" && pending.telegramChannelId) {
-      await deliverAssistantReplyToTelegram(pending.telegramChannelId, newMessages);
-    }
-
-    pending = await hook;
+  if (turn.channel === "telegram" && turn.telegramChannelId) {
+    await deliverAssistantReplyToTelegram(turn.telegramChannelId, newMessages);
   }
+
+  await finishStream();
 }
