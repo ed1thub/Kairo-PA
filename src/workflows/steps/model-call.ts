@@ -2,6 +2,7 @@ import { generateText } from "ai";
 import type { ModelMessage, ToolSet } from "ai";
 import { getChatModel, buildSystemPrompt } from "@/lib/llm";
 import { TOOL_DESCRIPTORS } from "@/tools/registry";
+import { writeUsageSnapshot } from "@/lib/usage-snapshot";
 
 export interface ModelCallToolCall {
   toolCallId: string;
@@ -40,6 +41,8 @@ export async function callModel(messages: ModelMessage[]): Promise<ModelCallResu
   });
 
   const response = await result.response;
+
+  await writeUsageSnapshot(response.headers ?? {});
 
   return {
     responseMessages: response.messages,
