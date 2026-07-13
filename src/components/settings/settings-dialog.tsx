@@ -55,7 +55,7 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[85vh] max-h-[46rem] w-[90vw] max-w-5xl flex-row gap-0 overflow-hidden p-0"
+        className="flex h-[85vh] max-h-[46rem] w-[95vw] max-w-7xl flex-row gap-0 overflow-hidden p-0"
         aria-describedby={undefined}
       >
         <DialogHeader className="sr-only">
