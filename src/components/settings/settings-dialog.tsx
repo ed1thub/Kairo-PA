@@ -55,7 +55,7 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[85vh] max-h-[46rem] w-[95vw] max-w-7xl flex-row gap-0 overflow-hidden p-0"
+        className="flex h-[85vh] max-h-[46rem] w-[95vw] max-w-7xl sm:max-w-7xl flex-row gap-0 overflow-hidden p-0"
         aria-describedby={undefined}
       >
         <DialogHeader className="sr-only">
@@ -89,7 +89,7 @@ export function SettingsDialog({
             </button>
           ))}
         </nav>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-x-hidden overflow-y-auto p-4">
           {active === "account" && <AccountSection />}
           {active === "general" && <GeneralSection />}
           {active === "usage" && <UsageSection />}
