@@ -3,7 +3,7 @@
 import { MapPin } from "lucide-react";
 import type { calendarView } from "@/tools/calendar";
 
-type CalendarEvent = Awaited<ReturnType<typeof calendarView>>[number];
+export type CalendarEvent = Awaited<ReturnType<typeof calendarView>>[number];
 
 // A client component so `toLocaleString()` runs in the visitor's browser,
 // in their local timezone — rendering this server-side (as part of the
